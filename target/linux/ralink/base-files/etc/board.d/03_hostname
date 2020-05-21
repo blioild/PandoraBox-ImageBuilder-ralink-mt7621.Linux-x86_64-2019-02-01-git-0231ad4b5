@@ -1,0 +1,45 @@
+#!/bin/sh
+# Copyright (C) 2014 D-Team Technology Co.,Ltd. ShenZhen
+# Copyright (c) 2005-2014, lintel <lintel.huang@gmail.com>
+# Copyright (c) 2016, GuoGuo <gch981213@gmail.com>
+#
+#
+#     警告:对着屏幕的哥们,我们允许你使用此脚本，但不允许你抹去作者的信息,请保留这段话。
+# 
+
+. /lib/functions/uci-defaults-new.sh
+. /lib/ralink.sh
+. /lib/functions.sh
+. /lib/functions/system.sh
+
+board=$(ralink_board_name)
+lan_mac=$(cat /sys/class/net/eth0/address)
+
+[ -n "$lan_mac" ] || return
+
+board_config_update
+json_select_object system
+case $board in
+  timecloud*)
+  json_add_string hostname "TIMEPLUG_$( echo $lan_mac | awk -F ":" '{print $5""$6 }'| tr a-z A-Z)"
+  ;;
+  hg256 | \
+  hg255d)
+  lan_mac=$(mtd_get_mac_binary Factory 4)
+  json_add_string hostname "PandoraBox_$( echo $lan_mac | awk -F ":" '{print $5""$6 }'| tr a-z A-Z)"
+  ;;
+  hc5661 | \
+  hc5761 | \
+  hc5962 | \
+  hc5861)
+   lan_mac=`mtd_get_mac_ascii bd_info_rsa "Vfac_mac "`
+   json_add_string hostname "PandoraBox_$( echo $lan_mac | awk -F ":" '{print $5""$6 }'| tr a-z A-Z)"
+		;;
+  *)
+  json_add_string hostname "PandoraBox_$( echo $lan_mac | awk -F ":" '{print $5""$6 }'| tr a-z A-Z)"
+  ;;
+esac
+json_select ..
+board_config_flush
+
+exit 0

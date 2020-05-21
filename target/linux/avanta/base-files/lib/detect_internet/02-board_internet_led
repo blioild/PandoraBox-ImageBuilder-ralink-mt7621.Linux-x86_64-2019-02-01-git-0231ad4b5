@@ -1,0 +1,33 @@
+#!/bin/sh
+. /lib/functions.sh
+. /lib/functions/network.sh
+. /lib/functions/leds.sh
+
+board_config_update
+
+board=$(board_name)
+
+check_cfg_nonexist() {
+	[ $(grep sysfs /etc/config/system | grep -c "$1") -eq 0 ]
+}
+
+if [ "$INET_STAT" = "CONNECTED" ]
+then
+	network_find_wan wan_net_name
+	network_get_device wan_dev "$wan_net_name"
+	case "$board" in
+	y1s)
+		check_cfg_nonexist "y1s:yellow:internet" || exit 0
+		led_off "y1s:yellow:internet"
+		;;
+	esac
+else
+	case "$board" in
+	y1s)
+		check_cfg_nonexist "y1s:yellow:internet" || exit 0
+		led_set_attr "y1s:yellow:internet" "trigger" "switch0"
+		led_set_attr "y1s:yellow:internet" "port_mask" "0x01"
+		;;
+	esac
+fi
+

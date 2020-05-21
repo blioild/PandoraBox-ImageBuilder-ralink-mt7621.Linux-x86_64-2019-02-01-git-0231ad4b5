@@ -1,0 +1,155 @@
+#!/bin/sh
+# Copyright (C) 2016 D-Team Technology Co.,Ltd. ShenZhen
+# Copyright (c) 2016, lintel <lintel.huang@gmail.com>
+# Copyright (c) 2016, GuoGuo <gch981213@gmail.com>
+#
+#
+#     警告:对着屏幕的哥们,我们允许你使用此脚本，但不允许你抹去作者的信息,请保留这段话。
+#
+
+. /lib/functions.sh
+. /lib/qualcomm.sh
+. /lib/functions/uci-defaults-new.sh
+. /lib/functions/system.sh
+
+
+network_setup_interfaces()
+{
+	local board="$1"
+
+	case $board in
+	ap-dk01.1-c2 | \
+	ap-dk07.1-c1)
+		ucidef_add_switch "switch0" \
+		"1:lan" "2:lan" "3:lan" "4:lan" "0@eth1" "5:wan" "0@eth0"
+		ucidef_set_interfaces_lan_wan "eth1" "eth0"
+		;;
+	asus,rt-acrh17|\
+	newifi-d2q|\
+	hiwifi-c526a|\
+	newifi5|\
+	ea6350v3|\
+	pbr-m5|\
+	rt-ac58u)
+		ucidef_add_switch "switch0" \
+		"1:lan" "2:lan" "3:lan" "4:lan" "0@eth1" "5:wan" "0@eth0"
+		ucidef_set_interfaces_lan_wan "eth1" "eth0"
+		;;
+	ap148 |\
+	wxr-2533dhp |\
+	d7800 |\
+	r7500 |\
+	xiaomi-r3d |\
+	r7500v2 |\
+	r7800 |\
+	ea8500 |\
+	vr2600v)
+	ucidef_add_switch "switch0" \
+		"1:lan" "2:lan" "3:lan" "4:lan" "6@eth1" "5:wan" "0@eth0"
+	;;
+	*)
+		ucidef_add_switch "switch0" \
+		ucidef_set_interfaces_lan_wan "eth1" "eth0"
+		"1:lan" "2:lan" "3:lan" "4:lan" "0@eth1" "5:wan" "0@eth0"
+		;;
+	esac
+}
+
+network_setup_macs()
+{
+	local board="$1"
+	local lan_mac=""
+	local wan_mac=""
+
+	case $board in
+	ap-dk01.1-c2 | \
+	ap-dk07.1-c1)
+		lan_mac=$(cat /sys/class/net/eth1/address)
+		wan_mac=$(cat /sys/class/net/eth0/address)
+		;;
+	asus,rt-acrh17 |\
+	rt-ac58u)
+		CI_UBIPART=UBI_DEV
+		lan_mac=$(mtd_get_mac_binary_ubi Factory 4102)
+		[ -n "$lan_mac" ] || lan_mac=$(cat /sys/class/net/eth1/address)
+		wan_mac=$(mtd_get_mac_binary_ubi Factory 36870)
+		[ -n "$wan_mac" ] || wan_mac=$(cat /sys/class/net/eth0/address)
+		;;
+	pbr-m5 |\
+	newifi5)
+		wan_mac=$(mtd_get_mac_binary ART 0)
+		lan_mac=$(mtd_get_mac_binary ART 6)
+		#lan_mac=$(cat /sys/class/net/eth1/address)
+		#wan_mac=$(cat /sys/class/net/eth0/address)
+		;;
+	wxr-2533dhp |\
+	newifi-d2q |\
+	ap148 |\
+	wxr-2533dhp |\
+	xiaomi-r3d |\
+	d7800 |\
+	r7500 |\
+	r7500v2 |\
+	r7800 |\
+	vr2600v)
+		wan_mac=$(mtd_get_mac_binary ART 0)
+		lan_mac=$(mtd_get_mac_binary ART 6)
+	;;
+	ea6350v3 |\
+	ea8500)
+	hw_mac_addr=$(mtd_get_mac_ascii devinfo hw_mac_addr)
+	[ -n "$hw_mac_addr" ] && {
+		lan_mac=$(macaddr_add $hw_mac_addr 3)
+		wan_mac=$hw_mac_addr
+	}
+	;;
+	hiwifi-c526a)
+	hw_mac_addr=`mtd_get_mac_ascii bdinfo "Vfac_mac "`
+	[ -n "$hw_mac_addr" ] || hw_mac_addr="D4:EE:07:00:00:00"
+	
+	wan_mac=$(macaddr_add $hw_mac_addr 1)
+	lan_mac=$hw_mac_addr
+	;;
+	newifi-d2q)
+		lan_mac=$(cat /sys/class/net/eth1/address)
+		wan_mac=$(cat /sys/class/net/eth0/address)
+		;;
+	*)
+		lan_mac=$(cat /sys/class/net/eth1/address)
+		wan_mac=$(cat /sys/class/net/eth0/address)
+		;;
+	esac
+
+	[ -n "$lan_mac" ] && ucidef_set_interface_macaddr lan $lan_mac
+	[ -n "$wan_mac" ] && ucidef_set_interface_macaddr wan $wan_mac
+}
+
+network_setup_ipaddr()
+{
+	local board="$1"
+
+	json_select_object network
+
+	json_select "lan"
+	[ $? -eq 0 ] || {
+		json_select ..
+		return
+	}
+	case $board in
+		newifi5 | \
+		timecloud)
+		json_add_string ipaddr "192.168.99.1"
+	esac
+	json_select ..
+
+	json_select ..
+}
+
+board_config_update
+board=$(qualcomm_board_name)
+network_setup_interfaces $board
+network_setup_macs $board
+network_setup_ipaddr $board
+board_config_flush
+
+exit 0

@@ -1,0 +1,32 @@
+#!/bin/sh
+# Copyright (c) 2013 OpenWrt
+# Copyright (C) 2014 D-Team Technology Co.,Ltd. ShenZhen
+# Copyright (c) 2005-2014, lintel <lintel.huang@gmail.com>
+#
+#
+#     警告:对着屏幕的哥们,我们允许你使用此脚本，但不允许你抹去作者的信息,请保留这段话。
+# 
+
+. /lib/functions.sh
+
+[ -f /lib/ralink.sh ] &&  {
+  . /lib/ralink.sh
+  board=$(ralink_board_name)
+}
+
+SingleSKU_2G_FILE="/etc/Wireless/SingleSKU_2G.dat"
+SingleSKU_5G_FILE="/etc/Wireless/SingleSKU_5G.dat"
+
+case $board in
+  d2*)
+	SingleSKU_2G_FILE="/etc/Wireless/SingleSKU/newifi3/SingleSKU_2G.dat"
+	SingleSKU_5G_FILE="/etc/Wireless/SingleSKU/newifi3/SingleSKU_5G.dat"
+  ;;
+  d1*)
+	SingleSKU_2G_FILE="/etc/Wireless/SingleSKU/newifi2/SingleSKU_2G.dat"
+	SingleSKU_5G_FILE="/etc/Wireless/SingleSKU/newifi2/SingleSKU_5G.dat"
+  ;;
+esac
+
+[ -f $SingleSKU_2G_FILE ] && ln -s $SingleSKU_2G_FILE  /etc/Wireless/SingleSKU_2G.dat
+[ -f $SingleSKU_5G_FILE ] && ln -s $SingleSKU_5G_FILE  /etc/Wireless/SingleSKU_5G.dat

@@ -1,0 +1,151 @@
+define Device/wxr-2533dhp
+	$(call Device/LegacyImage)
+	PROFILES += $$(DEVICE_NAME)
+	DEVICE_TITLE :=Buffalo WXR-2533DHP
+	BOARD_NAME := wxr-2533dhp
+	DEVICE_DTS := wxr-2533dhp
+	KERNEL_LOADADDR := 0x42208000
+	BLOCKSIZE := 128KiB
+	PAGESIZE := 2048
+	KERNEL_SIZE := 4096k
+	UBINIZE_OPTS := -E 5
+	FILESYSTEMS := squashfs
+	IMAGES := sysupgrade.bin
+	SUPPORTED_DEVICES = $$(BOARD_NAME)
+	KERNEL_INITRAMFS := $$(KERNEL) 
+	KERNEL_INITRAMFS_SUFFIX := -factory.bin
+	IMAGE/sysupgrade.bin := append-rootfs | buffalo-rootfs-cksum | \
+				sysupgrade-tar rootfs=$$$$@ | append-metadata
+	DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_LITE) $(USB3_SUPPORT) $(QCAWIFI_QCA9984_SUPPORT) $(QCAWIFI_QCA9980_SUPPORT) $(HW_CRYPTO_SUPPORT)
+endef
+TARGET_DEVICES += wxr-2533dhp
+
+# define Device/netgear_r7500
+# 	$(call Device/DniImage)
+# 	DEVICE_DTS := qcom-ipq8064-r7500
+# 	KERNEL_SIZE := 4096k
+# 	NETGEAR_BOARD_ID := R7500
+# 	NETGEAR_HW_ID := 29764841+0+128+256+3x3+4x4
+# 	BLOCKSIZE := 128k
+# 	PAGESIZE := 2048
+# 	BOARD_NAME := r7500
+# 	SUPPORTED_DEVICES += r7500
+# 	DEVICE_TITLE := Netgear Nighthawk X4 R7500
+# 	DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_LITE) $(USB3_SUPPORT) $(QCAWIFI_QCA9984_SUPPORT) $(QCAWIFI_QCA9980_SUPPORT) $(HW_CRYPTO_SUPPORT)
+# endef
+# TARGET_DEVICES += netgear_r7500
+
+# define Device/netgear_r7500v2
+# 	$(call Device/DniImage)
+# 	DEVICE_DTS := qcom-ipq8064-r7500v2
+# 	KERNEL_SIZE := 4096k
+# 	NETGEAR_BOARD_ID := R7500v2
+# 	NETGEAR_HW_ID := 29764958+0+128+512+3x3+4x4
+# 	BLOCKSIZE := 128k
+# 	PAGESIZE := 2048
+# 	BOARD_NAME := r7500v2
+# 	SUPPORTED_DEVICES += r7500v2
+# 	DEVICE_TITLE := Netgear Nighthawk X4 R7500v2
+# 	DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_LITE) $(USB3_SUPPORT) $(QCAWIFI_QCA9984_SUPPORT) $(QCAWIFI_QCA9980_SUPPORT) $(HW_CRYPTO_SUPPORT)
+# endef
+# TARGET_DEVICES += netgear_r7500v2
+
+define Device/netgear_r7800
+	$(call Device/DniImage)
+	DEVICE_DTS := netgear-r7800
+	KERNEL_SIZE := 4096k
+	NETGEAR_BOARD_ID := R7800
+	NETGEAR_HW_ID := 29764958+0+128+512+4x4+4x4+cascade
+	BLOCKSIZE := 128k
+	PAGESIZE := 2048
+	BOARD_NAME := r7800
+	SUPPORTED_DEVICES += r7800
+	DEVICE_TITLE := Netgear Nighthawk X4S R7800
+	DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_LITE) $(USB3_SUPPORT) \
+		$(QCAWIFI_QCA9984_SUPPORT) $(QCAWIFI_QCA9980_SUPPORT) qcawifi-boarddata-netgear-r7800 \
+		$(HW_CRYPTO_SUPPORT) $(SATA_SUPPORT) 
+endef
+TARGET_DEVICES += netgear_r7800
+
+define Device/ap148
+	$(call Device/FitImage)
+	PROFILES += $$(DEVICE_NAME)
+	DEVICE_TITLE :=Qualcomm AP148
+	BOARD_NAME := ap148
+	DEVICE_DTS := qcom-ipq8064-v2.0-ap148
+	KERNEL_LOADADDR := 0x42208000
+	BLOCKSIZE := 128KiB
+	PAGESIZE := 2048
+	KERNEL_SIZE := 4096k
+	UBINIZE_OPTS := -E 5
+	FILESYSTEMS := squashfs
+	IMAGES := sysupgrade.bin
+	SUPPORTED_DEVICES = $$(BOARD_NAME)
+	KERNEL_INITRAMFS := $$(KERNEL) 
+	KERNEL_INITRAMFS_SUFFIX := -factory.bin
+	IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+	DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_LITE) $(USB3_SUPPORT) $(QCAWIFI_QCA9984_SUPPORT) $(QCAWIFI_QCA9980_SUPPORT) $(HW_CRYPTO_SUPPORT)
+endef
+TARGET_DEVICES += ap148
+
+define Device/ap161
+	$(call Device/FitImage)
+	PROFILES += $$(DEVICE_NAME)
+	DEVICE_TITLE :=Qualcomm AP161
+	BOARD_NAME := ap148
+	DEVICE_DTS := qcom-ipq8064-v3.0-ap161
+	KERNEL_LOADADDR := 0x42208000
+	BLOCKSIZE := 128KiB
+	PAGESIZE := 2048
+	KERNEL_SIZE := 4096k
+	UBINIZE_OPTS := -E 5
+	FILESYSTEMS := squashfs
+	IMAGES := sysupgrade.bin
+	SUPPORTED_DEVICES = $$(BOARD_NAME)
+	KERNEL_INITRAMFS := $$(KERNEL) 
+	KERNEL_INITRAMFS_SUFFIX := -factory.bin
+	IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+	DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_LITE) $(USB3_SUPPORT) $(QCAWIFI_QCA9984_SUPPORT) $(QCAWIFI_QCA9980_SUPPORT) $(HW_CRYPTO_SUPPORT)
+endef
+TARGET_DEVICES += ap161
+
+define Device/xiaomi-r3d
+	$(call Device/LegacyImage)
+	PROFILES += $$(DEVICE_NAME)
+	DEVICE_TITLE :=Xiaomi R3D
+	BOARD_NAME := xiaomi-r3d
+	DEVICE_DTS := xiaomi-r3d
+	KERNEL_LOADADDR := 0x42208000
+	BLOCKSIZE := 128KiB
+	PAGESIZE := 2048
+	KERNEL_SIZE := 4096k
+	UBINIZE_OPTS := -E 5
+	FILESYSTEMS := squashfs
+	IMAGES := sysupgrade.bin
+	SUPPORTED_DEVICES = $$(BOARD_NAME)
+	KERNEL_INITRAMFS := $$(KERNEL) 
+	KERNEL_INITRAMFS_SUFFIX := -factory.bin
+	IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+	DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_LITE) $(USB3_SUPPORT) $(QCAWIFI_QCA9984_SUPPORT)  $(HW_CRYPTO_SUPPORT) $(SATA_SUPPORT)
+endef
+TARGET_DEVICES += xiaomi-r3d
+
+define Device/linksys_ea8500
+	$(call Device/LegacyImage)
+	DEVICE_DTS := linksys-ea8500
+	KERNEL_LOADADDR := 0x42208000
+	PAGESIZE := 2048
+	BLOCKSIZE := 128k
+	KERNEL_SIZE := 3072k
+	KERNEL = kernel-bin | append-dtb | uImage none | append-uImage-fakehdr filesystem
+	BOARD_NAME := ea8500
+	SUPPORTED_DEVICES += ea8500
+	UBINIZE_OPTS := -E 5
+	IMAGES := factory.bin sysupgrade.bin
+	IMAGE/factory.bin := append-kernel | pad-to $$$${KERNEL_SIZE} | append-ubi
+	IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
+	DEVICE_TITLE := Linksys EA8500
+	DEVICE_PACKAGES :=  $(PANDORABOX_ROUTER_NAS_LITE) $(USB3_SUPPORT) $(QCAWIFI_QCA9980_SUPPORT) $(HW_CRYPTO_SUPPORT) $(SATA_SUPPORT) \
+				$(LINKSYS_DUALBOOT_SUPPORT)
+endef
+TARGET_DEVICES += linksys_ea8500

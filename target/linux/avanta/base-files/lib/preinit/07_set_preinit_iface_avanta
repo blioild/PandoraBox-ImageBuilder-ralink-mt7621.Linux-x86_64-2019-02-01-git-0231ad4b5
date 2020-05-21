@@ -1,0 +1,13 @@
+#!/bin/sh
+
+avanta_set_preinit_iface() {
+	. /lib/avanta.sh
+
+	case "$(avanta_board_name)" in
+	*)
+		ifname=eth0
+		;;
+	esac
+}
+
+boot_hook_add preinit_main avanta_set_preinit_iface

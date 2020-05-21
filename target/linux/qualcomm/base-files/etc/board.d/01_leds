@@ -1,0 +1,149 @@
+#!/bin/sh
+# Copyright (C) 2016 D-Team Technology Co.,Ltd. ShenZhen
+# Copyright (c) 2016, lintel <lintel.huang@gmail.com>
+# Copyright (c) 2016, GuoGuo <gch981213@gmail.com>
+# Copyright (C) 2018 PandoraBox Team
+#
+#     警告:对着屏幕的哥们,我们允许你使用此脚本，但不允许你抹去作者的信息,请保留这段话。
+#
+
+. /lib/functions.sh
+. /lib/functions/uci-defaults-new.sh
+. /lib/qualcomm.sh
+
+set_usb_led() {
+	ucidef_set_led_usbdev "usb" "USB" "${1}" "${2:-1-1}"
+}
+
+set_usb_led_ports() {
+	local sysfs="$1";shift
+	ucidef_set_led_usbport "usb" "USB" "${sysfs}" $@
+}
+
+set_wifi_led() {
+	ucidef_set_led_netdev "wifi_led" "wifi" "${1}" "${2:-wifi0}"
+}
+
+set_wifi_led_5g() {
+	ucidef_set_led_netdev "wifi_led_5g" "wifi_5g" "${1}" "${2:-wifi1}"
+}
+
+set_wifi_led_3gnet() {
+	ucidef_set_led_netdev "3g" "3g" "${1:-internet}" "${2:-3g-3gnet}"
+}
+
+set_internet_led() {
+	local sysfs="$1"
+	json_select_object led
+	json_select_object "led_internet"
+	json_add_string name "pb_internet"
+	json_add_string sysfs "$sysfs"
+	json_add_string trigger "pb_internet"
+	json_select ..
+	json_select ..
+}
+
+set_led_heartbeat() {
+	local cfg="led_$1"
+	local name="$2"
+	local sysfs="$3"
+
+	json_select_object led
+
+	json_select_object "$1"
+	json_add_string name "$name"
+	json_add_string sysfs "$sysfs"
+	json_add_string trigger heartbeat
+	json_select ..
+
+	json_select ..
+}
+
+set_led_breath() {
+	local cfg="led_$1"
+	local name="$2"
+	local sysfs="$3"
+
+	json_select_object led
+
+	json_select_object "$1"
+	json_add_string name "$name"
+	json_add_string sysfs "$sysfs"
+	json_add_string trigger breath
+	json_select ..
+
+	json_select ..
+}
+
+board=$(board_name)
+boardname="${board##*,}"
+
+board_config_update
+
+case $board in
+	asus,rt-acrh17)
+		set_wifi_led "${boardname}:blue:2g"
+		set_wifi_led_5g "${boardname}:blue:5g"
+		set_internet_led "${boardname}:blue:wan"
+		ucidef_set_led_switch "lan1" "LAN1" "${boardname}:blue:lan1" "switch0" "0x02"
+		ucidef_set_led_switch "lan2" "LAN2" "${boardname}:blue:lan2" "switch0" "0x04"
+		ucidef_set_led_switch "lan3" "LAN3" "${boardname}:blue:lan3" "switch0" "0x08"
+		ucidef_set_led_switch "lan4" "LAN4" "${boardname}:blue:lan4" "switch0" "0x10"
+		;;
+	rt-ac58u)
+		set_usb_led_ports "$board:blue:usb" "usb1-port1" "usb2-port1"
+		ucidef_set_led_netdev "wifi_led" "wifi" "$board:blue:wlan2G" "wifi0" "link tx"
+		ucidef_set_led_netdev "wifi_led_5g" "wifi" "$board:blue:wlan5G" "wifi1" "link tx"
+		ucidef_set_led_switch "lan" "LAN" "$board:blue:lan" "switch0" "0x1e"
+		set_internet_led "$board:blue:wan"
+		;;
+	pbr-m5)
+		ucidef_set_led_default "power" "power" "power" "1"
+		set_internet_led "internet"
+		set_usb_led_ports "usb" "usb1-port1" "usb2-port1"
+		ucidef_set_led_netdev "wifi_led" "wifi" "2g" "wifi0" "link tx"
+		ucidef_set_led_netdev "wifi_led_5g" "wifi" "5g" "wifi1" "link tx"
+		;;
+	newifi5)
+		ucidef_set_led_default "newifi:power" "power" "power" "1"
+		set_internet_led "newifi:internet"
+		set_usb_led_ports "newifi:usb" "usb1-port1" "usb2-port1"
+		ucidef_set_led_netdev "wifi_led" "wifi" "newifi:2g" "wifi0" "link tx"
+		ucidef_set_led_netdev "wifi_led_5g" "wifi" "newifi:5g" "wifi1" "link tx"
+		;;
+	d2q)
+		ucidef_set_led_netdev "wifi_led" "wifi" "2g:blue" "ra0" "link tx"
+		ucidef_set_led_netdev "wifi_led_5g" "wifi_5g" "5g:blue" "rai0" "link tx"
+		set_internet_led "internet:blue"
+		ucidef_set_led_default "power" "power" "power:blue" "1"
+		set_usb_led_ports "usb:blue" "usb1-port1" "usb2-port1"
+		;;
+	c2600)
+		ucidef_set_led_usbport "usb1" "USB 1" "${board}:white:usb_2" "usb1-port1" "usb2-port1"
+		ucidef_set_led_usbport "usb2" "USB 2" "${board}:white:usb_4" "usb3-port1" "usb4-port1"
+		ucidef_set_led_switch "wan" "wan" "${board}:white:wan" "switch0" "0x20"
+		ucidef_set_led_switch "lan" "lan" "${board}:white:lan" "switch0" "0x1e"
+	;;
+	d7800 |\
+	r7500 |\
+	r7500v2 |\
+	r7800)
+		ucidef_set_led_usbport "usb1" "USB 1" "${board}:white:usb1" "usb1-port1" "usb2-port1"
+		ucidef_set_led_usbport "usb2" "USB 2" "${board}:white:usb2" "usb3-port1" "usb4-port1"
+		ucidef_set_led_ide "esata" "eSATA" "${board}:white:esata"
+		#set_wifi_led "${boardname}:white:wps"
+		set_wifi_led_5g "${boardname}:white:wifi"
+		set_internet_led "${boardname}:white:wan"
+	;;
+	wxr-2533dhp)
+		set_led_heartbeat "router" "router" "${board}:white:router"
+		ucidef_set_led_usbport "usb1" "USB 1" "${board}:green:usb" "usb1-port1" "usb2-port1" "usb3-port1" "usb4-port1"
+		set_internet_led "${board}:white:internet"
+		ucidef_set_led_netdev "wifi_led" "wifi" "${board}:white:wireless" "wifi0" "link tx"
+		ucidef_set_led_netdev "wifi_led_5g" "wifi" "${board}:orange:wireless" "wifi1" "link tx"
+	;;
+esac
+
+board_config_flush
+
+exit 0

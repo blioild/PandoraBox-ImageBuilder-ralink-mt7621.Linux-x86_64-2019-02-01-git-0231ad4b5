@@ -1,0 +1,50 @@
+#!/bin/sh
+# Copyright (c) 2013 OpenWrt
+# Copyright (C) 2018 PandoraBox Team
+# Copyright (c) 2005-2018, lintel <lintel.huang@gmail.com>
+
+[ "${ACTION}" = "released" ] || exit 0
+
+. /lib/functions.sh
+. /lib/functions/system.sh
+. /lib/functions/leds.sh
+
+wps_led_blink() {
+	led_timer $1 500 500
+	sleep 1
+}
+
+wps_led_off() {
+	sleep 2
+	led_off $1
+}
+logger "$BUTTON pressed for $SEEN seconds"
+
+
+if [ "$SEEN" -lt 1 ]
+then
+	local board=$(board_name)
+	local wps_led_name
+	echo "$board:WPS Pressed" > /dev/console
+
+	case "$board" in
+        letv)
+        wps_led_name="multiplexer-led:blue"
+        wps_led_blink $wps_led_name
+		wps_pbc
+		wps_led_off $wps_led_name
+        ;;
+        *)
+         wps_pbc
+        ;;
+	esac
+elif [ "$SEEN" -gt 4 ]
+then
+	echo "FACTORY RESET" > /dev/console
+	
+	for i in $(ls /sys/class/leds)
+	do
+		led_timer $i 50 50
+	done
+	jffs2reset -y && reboot &
+fi

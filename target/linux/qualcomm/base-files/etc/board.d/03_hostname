@@ -1,0 +1,38 @@
+#!/bin/sh
+# Copyright (C) 2018 PandoraBox Team
+# Copyright (c) 2005-2014, lintel <lintel.huang@gmail.com>
+# Copyright (c) 2016, GuoGuo <gch981213@gmail.com>
+
+
+. /lib/functions/uci-defaults-new.sh
+. /lib/qualcomm.sh
+. /lib/functions.sh
+. /lib/functions/system.sh
+
+board=$(qualcomm_board_name)
+
+board_config_update
+json_select network
+json_select lan
+json_get_var lan_mac macaddr
+json_select ..
+json_select ..
+[ -n "$lan_mac" ] || {
+	board_config_flush
+	return
+}
+json_select_object system
+
+case $board in
+  newifi*)
+  json_add_string hostname "newifi_$( echo $lan_mac | awk -F ":" '{print $5""$6 }'| tr a-z A-Z)"
+  ;;
+  *)
+  json_add_string hostname "PandoraBox_$( echo $lan_mac | awk -F ":" '{print $5""$6 }'| tr a-z A-Z)"
+  ;;
+esac
+
+json_select ..
+board_config_flush
+
+exit 0

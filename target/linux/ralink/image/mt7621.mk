@@ -1,0 +1,271 @@
+#
+# MT7621 Profiles
+#
+		 	
+define Device/mt7621a-evb
+  BOARDNAME := MT7621A_EVB
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := MediaTek MT7621 EVB
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_GENERIC) $(USB3_SUPPORT) $(MMC_SUPPORT) $(I2C_SUPPORT) $(MTKWIFI_MT7603E_SUPPORT) $(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += mt7621a-evb
+
+define Device/pbr-m1
+  BOARDNAME := PBR-M1
+  IMAGE_SIZE := $(ralink_default_fw_size_32M)
+  DEVICE_TITLE := PandoraBox PBR-M1
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_GENERIC) $(USB3_SUPPORT) $(MMC_SUPPORT) $(I2C_SUPPORT) $(MTKWIFI_MT7603E_SUPPORT) \
+	$(MTKWIFI_MT76X2E_SUPPORT) $(RTC_PACKAGES) $(SATA_SUPPORT)
+endef
+TARGET_DEVICES += pbr-m1
+
+define Device/pbr-m2
+  BOARDNAME := PBR-M2
+  IMAGE_SIZE := $(ralink_default_fw_size_32M)
+  DEVICE_TITLE := PandoraBox PBR-M2
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_GENERIC) $(USB3_SUPPORT) $(MMC_SUPPORT) $(I2C_SUPPORT) $(MTKWIFI_MT7603E_SUPPORT) \
+	$(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += pbr-m2
+
+define Device/pbr-aps
+  BOARDNAME := PBR-APS
+  IMAGE_SIZE := $(ralink_default_fw_size_32M)
+  DEVICE_TITLE := PandoraBox PBR-APS512
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_GENERIC) $(USB3_SUPPORT) $(MMC_SUPPORT) $(I2C_SUPPORT) \
+	$(QCAWIFI_QCA9888_SUPPORT) $(RTC_PACKAGES) $(SATA_SUPPORT) 
+endef
+TARGET_DEVICES += pbr-aps
+
+define Device/a3004ns
+  BOARDNAME := A3004NS
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := TOTOLINK A3004NS
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_GENERIC) $(USB3_SUPPORT) $(MMC_SUPPORT) $(I2C_SUPPORT) \
+	$(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += a3004ns
+
+define Device/amazingbox
+  BOARDNAME := ABOX
+  SUPPORTED_DEVICES := abox
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := AmazingBox Lite
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_GENERIC) $(USB3_SUPPORT) $(MMC_SUPPORT)  \
+	$(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += amazingbox
+
+define Device/timecloud
+  BOARDNAME := TIMECLOUD
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := Thunder TimeCloud
+  DEVICE_PACKAGES := $(PANDORABOX_NAS_GENERIC) $(MMC_SUPPORT) $(USB3_SUPPORT)
+endef
+TARGET_DEVICES += timecloud
+
+define Device/timecloud2
+  BOARDNAME := TIMECLOUD2
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := Thunder TimeCloud 2
+  DEVICE_PACKAGES := $(PANDORABOX_NAS_GENERIC) $(MMC_SUPPORT)  $(USB3_SUPPORT) $(SATA_SUPPORT)
+endef
+TARGET_DEVICES += timecloud2
+
+define Device/gehua-gh-a1
+  BOARDNAME := GH-A1
+  SUPPORTED_DEVICES := gh-a1
+  IMAGE_SIZE := $(ralink_default_fw_size_32M)
+  DEVICE_TITLE := GeHua GH-A1
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_GENERIC) $(USB3_SUPPORT) $(MTKWIFI_MT7603E_SUPPORT) \
+	$(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += gehua-gh-a1
+
+define Device/newifi-2
+  BOARDNAME := NEWIFI-D1
+  SUPPORTED_DEVICES := d1
+  IMAGE_SIZE := $(ralink_default_fw_size_32M)
+  DEVICE_TITLE := Newifi 2
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_LITE) $(USB3_SUPPORT) $(MMC_SUPPORT) $(MTKWIFI_MT7603E_SUPPORT) \
+  $(MTKWIFI_MT76X2E_SUPPORT) kmod-ledtrig-lightflow
+endef
+TARGET_DEVICES += newifi-2
+
+define Device/newifi-3
+  BOARDNAME := NEWIFI-D2
+  SUPPORTED_DEVICES := d2
+  IMAGE_SIZE := $(ralink_default_fw_size_32M)
+  DEVICE_TITLE := Newifi 3
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_LITE) $(USB3_SUPPORT)  $(MTKWIFI_MT7603E_SUPPORT) \
+	$(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += newifi-3
+
+define Device/newifi-3-full
+  BOARDNAME := NEWIFI-D2
+  SUPPORTED_DEVICES := d2
+  IMAGE_SIZE := $(ralink_default_fw_size_32M)
+  DEVICE_TITLE := Newifi 3 Full
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_GENERIC) $(USB3_SUPPORT)  $(MTKWIFI_MT7603E_SUPPORT) \
+	$(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += newifi-3-full
+
+define Device/newifi-3-pear
+  BOARDNAME := NEWIFI-D2
+  SUPPORTED_DEVICES := d2
+  IMAGE_SIZE := $(ralink_default_fw_size_32M)
+  DEVICE_TITLE := Newifi 3 pear OEM
+  DEVICE_PACKAGES := $(PANDORABOX_ROTER_4_PEAR) $(USB3_SUPPORT) $(MTKWIFI_MT7603E_SUPPORT) \
+	$(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += newifi-3-pear
+
+# 
+# define Device/creativebox
+#   BOARDNAME := CREATIVEBOX
+#   IMAGE_SIZE := $(ralink_default_fw_size_32M)
+#   DEVICE_TITLE := CreativeBox MT7621 Board
+#   DEVICE_PACKAGES := $(PACKAGES_16M_FLASH) $(SATA_AHCI_STORAGE_BASE) $(WIFI_PACKAGES_2G) $(WIFI_PACKAGES_5G) $(RTC_PACKAGES) $(SYNCDIAL_PACKAGES)
+# endef
+#TARGET_DEVICES += creativebox
+
+define Device/yk-l2
+  BOARDNAME := Youku-L2
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := YouKu L2
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_GENERIC) $(USB3_SUPPORT) $(MMC_SUPPORT) $(MTKWIFI_MT7603E_SUPPORT) \
+	$(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += yk-l2
+
+define Device/wsr-1166dhp
+  BOARDNAME := WSR-1166
+  SUPPORTED_DEVICES := wsr-1166
+#  IMAGE/sysupgrade.bin := trx | pad-rootfs | append-metadata
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := Buffalo WSR-1166DHP
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_GENERIC) $(USB3_SUPPORT) $(MMC_SUPPORT) $(MTKWIFI_MT7603E_SUPPORT) \
+	$(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += wsr-1166dhp
+
+
+define Device/re6500
+  BOARDNAME := RE6500
+  SUPPORTED_DEVICES := re6500
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := Linksys RE6500
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_GENERIC) $(I2S_SUPPORT) \
+	$(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += re6500
+
+define Device/mac2600r
+  BOARDNAME := MAC2600R
+  SUPPORTED_DEVICES := mac2600r
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := Mercury MAC2600R
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_GENERIC) $(MTKWIFI_MT7615N_SUPPORT)
+endef
+TARGET_DEVICES += mac2600r
+
+define Device/totolink-a7000r
+  BOARDNAME := A7000R
+  SUPPORTED_DEVICES := a7000r
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := TOTOLINK A7000R
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_GENERIC) $(MTKWIFI_MT7615N_SUPPORT)
+endef
+TARGET_DEVICES += totolink-a7000r
+
+
+define Device/k2p
+  BOARDNAME := K2P
+  SUPPORTED_DEVICES := k2p
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := Phicomm K2P
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_GENERIC) $(MTKWIFI_MT7615D_SUPPORT)
+endef
+TARGET_DEVICES += k2p
+
+define Device/wr1200js
+  BOARDNAME := WR1200JS
+  SUPPORTED_DEVICES := wr1200js
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := YouHua WR1200JS
+  DEVICE_PACKAGES := $(PACKAGES_16M_FLASH)  $(USB3_SUPPORT) $(MTKWIFI_MT7603E_SUPPORT) \
+	$(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += wr1200js
+
+define Device/jhr-ac860m
+  BOARDNAME := AC860M
+  SUPPORTED_DEVICES := ac860m
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  DEVICE_TITLE := JCG JHR-AC860M
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_GENERIC) $(USB3_SUPPORT) $(MTKWIFI_MT7615N_SUPPORT)
+endef
+TARGET_DEVICES += jhr-ac860m
+
+
+define Device/netgear-r6220
+  BOARDNAME := NETGEAR_R6220
+  BLOCKSIZE := 128KiB
+  PAGESIZE := 2048
+  FILESYSTEMS := squashfs
+  IMAGE_SIZE := $(ralink_default_fw_size_16M)
+  UBINIZE_OPTS := -E 5
+  KERNEL_SIZE := 4096k
+  KERNEL := kernel-bin | patch-cmdline | lzma | uImage lzma
+  IMAGE/sysupgrade.bin := append-kernel | pad-to $$$$(KERNEL_SIZE) | append-ubi
+  DEVICE_TITLE :=Netgear R6220
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_GENERIC) $(USB3_SUPPORT) $(MTKWIFI_MT7603E_SUPPORT) $(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += netgear-r6220
+
+define Device/xiaomi-r3p
+  BOARDNAME := XIAOMI_R3P
+  BLOCKSIZE := 128KiB
+  PAGESIZE := 2048
+  FILESYSTEMS := squashfs
+  IMAGE_SIZE := $(ralink_default_fw_size_128M)
+  UBINIZE_OPTS := -E 5
+  KERNEL_SIZE := 2048k
+  KERNEL := kernel-bin | patch-cmdline | lzma | uImage lzma
+  IMAGE/sysupgrade.bin := append-kernel | pad-to $$$$(KERNEL_SIZE) | append-ubi
+  DEVICE_TITLE :=MiWiFi3 Pro
+  DEVICE_PACKAGES :=   $(PANDORABOX_ROUTER_NAS_GENERIC) $(USB3_SUPPORT) $(MTKWIFI_MT7615N_SUPPORT)
+endef
+TARGET_DEVICES += xiaomi-r3p
+
+define Device/hc5962
+  BOARDNAME := HC5962
+  BLOCKSIZE := 128KiB
+  PAGESIZE := 2048
+  FILESYSTEMS := squashfs
+  IMAGE_SIZE := $(ralink_default_fw_size_32M)
+  UBINIZE_OPTS := -E 5
+  KERNEL_SIZE := 2048k
+  KERNEL := kernel-bin | patch-cmdline | lzma | uImage lzma
+  IMAGE/sysupgrade.bin := append-kernel | pad-to $$$$(KERNEL_SIZE) | append-ubi
+  DEVICE_TITLE := HiWiFi HC5962
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_GENERIC) $(USB3_SUPPORT) $(MMC_SUPPORT) $(MTKWIFI_MT7603E_SUPPORT) $(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += hc5962
+
+define Device/xiaomi-r3g
+  BOARDNAME := XIAOMI_R3G
+  BLOCKSIZE := 128KiB
+  PAGESIZE := 2048
+  FILESYSTEMS := squashfs
+  IMAGE_SIZE := $(ralink_default_fw_size_32M)
+  UBINIZE_OPTS := -E 5
+  KERNEL_SIZE := 2048k
+  KERNEL := kernel-bin | patch-cmdline | lzma | uImage lzma
+  IMAGE/sysupgrade.bin := append-kernel | pad-to $$$$(KERNEL_SIZE) | append-ubi
+  DEVICE_TITLE := Xiaomi R3G
+  DEVICE_PACKAGES := $(PANDORABOX_ROUTER_NAS_GENERIC) $(USB3_SUPPORT) $(MTKWIFI_MT7603E_SUPPORT) $(MTKWIFI_MT76X2E_SUPPORT)
+endef
+TARGET_DEVICES += xiaomi-r3g

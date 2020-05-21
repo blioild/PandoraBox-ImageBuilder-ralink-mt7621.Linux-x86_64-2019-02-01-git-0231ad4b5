@@ -1,0 +1,167 @@
+#!/bin/sh
+
+. /lib/functions.sh
+. /lib/functions/system.sh
+
+qcawifi_eeprom_die() {
+	echo "qcawifi eeprom: " "$*"
+	exit 1
+}
+
+qcawifi_eeprom_extract() {
+	local part=$1
+	local offset=$2
+	local count=$3
+	local eeprom_file=$4
+	local mtd
+
+	mtd=$(find_mtd_chardev $part)
+	[ -n "$mtd" ] || \
+		qcawifi_eeprom_die "no mtd device found for partition $part"
+
+	dd if=$mtd of=$eeprom_file bs=1 skip=$offset count=$count &>/dev/null || \
+		qcawifi_eeprom_die "failed to extract from $mtd"
+}
+
+qcaiwifi_ubi_eeprom_extract() {
+	local part=$1
+	local offset=$2
+	local count=$3
+	local eeprom_file=$4
+	local ubidev=$(nand_find_ubi $CI_UBIPART)
+	local ubi
+
+	ubi=$(nand_find_volume $ubidev $part)
+	[ -n "$ubi" ] || \
+		qcawifi_eeprom_die "no UBI volume found for $part"
+
+	dd if=/dev/$ubi of=$eeprom_file bs=1 skip=$offset count=$count &>/dev/null || \
+		qcawifi_eeprom_die "failed to extract from $ubi"
+}
+
+qcawifi_9k_patch_eeprom_mac() {
+	local mac=$1
+	local eeprom_file=$2
+	
+	[ -z "$mac" ] && return
+
+	macaddr_2bin $mac | dd of=$eeprom_file conv=notrunc bs=1 seek=2 count=6 &>/dev/null
+}
+
+qcawifi_10k_patch_eeprom_mac() {
+	local mac=$1
+	local eeprom_file=$2
+	
+	[ -z "$mac" ] && return
+
+	macaddr_2bin $mac | dd of=$eeprom_file conv=notrunc bs=1 seek=6 count=6 &>/dev/null
+}
+
+# xor multiple hex values of the same length
+xor() {
+	local val
+	local ret="0x$1"
+	local retlen=${#1}
+
+	shift
+	while [ -n "$1" ]; do
+		val="0x$1"
+		ret=$((ret ^ val))
+		shift
+	done
+
+	printf "%0${retlen}x" "$ret"
+}
+
+qcawifi_10k_patch_mac_crc() {
+	local mac=$1
+	local eeprom_file=$2
+	local mac_offset=6
+	local chksum_offset=2
+	local xor_mac
+	local xor_fw_mac
+	local xor_fw_chksum
+
+	xor_fw_mac=$(hexdump -v -n 6 -s $mac_offset -e '/1 "%02x"' $eeprom_file)
+	xor_fw_mac="${xor_fw_mac:0:4} ${xor_fw_mac:4:4} ${xor_fw_mac:8:4}"
+
+	qcawifi_10k_patch_eeprom_mac "$mac" $eeprom_file && {
+		xor_mac=${mac//:/}
+		xor_mac="${xor_mac:0:4} ${xor_mac:4:4} ${xor_mac:8:4}"
+
+		xor_fw_chksum=$(hexdump -v -n 2 -s $chksum_offset -e '/1 "%02x"' $eeprom_file)
+		xor_fw_chksum=$(xor $xor_fw_chksum $xor_fw_mac $xor_mac)
+
+		printf "%b" "\x${xor_fw_chksum:0:2}\x${xor_fw_chksum:2:2}" | \
+			dd of=$eeprom_file conv=notrunc bs=1 seek=$chksum_offset count=2
+	}
+}
+
+do_load_qcawifi_board_bin() {
+    local board=$(board_name)
+	
+    local cal_data_path="/tmp"
+	
+	[ -d $cal_data_path ] || mkdir -p $cal_data_path
+	
+	echo "Loading qcawifi caldata for $board"
+    # load board.bin
+    case "$board" in
+        ap152)
+            qcawifi_eeprom_extract "art" 4096 2048 $cal_data_path/wifi0.caldata
+			qcawifi_eeprom_extract "art" 20480 2116 $cal_data_path/wifi1.caldata
+        ;;
+        ap147 | ap151 | ap135 | ap137 | ap135-020 | ap147-010 )
+            qcawifi_eeprom_extract "art" 4096 2048 $cal_data_path/wifi0.caldata
+			qcawifi_eeprom_extract "art" 20480 2116 $cal_data_path/wifi1.caldata
+        ;;
+        dw33d)
+			#QCA9558
+            qcawifi_eeprom_extract "art" 4096 2048 $cal_data_path/wifi0.caldata
+            qcawifi_9k_patch_eeprom_mac $(mtd_get_mac_binary art 12) $cal_data_path/wifi0.caldata
+            #QCA9880
+			qcawifi_eeprom_extract "art" 20480 2116 $cal_data_path/wifi1.caldata
+			qcawifi_10k_patch_mac_crc $(mtd_get_mac_binary art 18) $cal_data_path/wifi1.caldata
+        ;;
+        sbr-ac1750)
+			#QCA9558
+            qcawifi_eeprom_extract "art" 4096 2048 $cal_data_path/wifi0.caldata
+            qcawifi_9k_patch_eeprom_mac $(macaddr_add $(cat /sys/class/net/eth0/address) +2) $cal_data_path/wifi0.caldata
+            #QCA9880
+			qcawifi_eeprom_extract "art" 20480 2116 $cal_data_path/wifi1.caldata
+			qcawifi_10k_patch_mac_crc $(macaddr_add $(cat /sys/class/net/eth0/address) +3) $cal_data_path/wifi1.caldata
+        ;;
+        k2t)
+			#QCA963
+			local wifi_mac
+			wifi_mac=$(head -c400 $(find_mtd_chardev config) | grep -o 5g_mac.* | cut -d\" -f3)
+			
+            qcawifi_eeprom_extract "art" 4096 2048 $cal_data_path/wifi0.caldata
+            
+            [ -n "$wifi_mac" ] && qcawifi_9k_patch_eeprom_mac $(macaddr_add $wifi_mac +1) $cal_data_path/wifi0.caldata
+            #QCA9886
+			qcawifi_eeprom_extract "art" 20480 12064 $cal_data_path/wifi1.caldata
+			qcawifi_10k_patch_mac_crc $wifi_mac $cal_data_path/wifi1.caldata
+        ;;
+        wndr4300v2 |\
+        wndr4500v3)
+            qcawifi_eeprom_extract "caldata" 4096 2048 $cal_data_path/wifi0.caldata
+			qcawifi_eeprom_extract "caldata" 20480 2116 $cal_data_path/wifi1.caldata
+        ;;
+        tl-wr841n-v8)
+            qcawifi_eeprom_extract "art" 4096 2048 $cal_data_path/wifi0.caldata
+        ;;
+        letv)
+            qcawifi_eeprom_extract "art" 4096 2048 $cal_data_path/wifi0.caldata
+        ;;
+        *)
+            [ -n "$mtdblock" ] || return
+            
+            echo "Support to copy caldata default for $board"
+            qcawifi_eeprom_extract "art" 4096 2048 $cal_data_path/wifi0.caldata
+			qcawifi_eeprom_extract "art" 20480 2116 $cal_data_path/wifi1.caldata
+        ;;
+    esac
+}
+
+boot_hook_add preinit_main do_load_qcawifi_board_bin

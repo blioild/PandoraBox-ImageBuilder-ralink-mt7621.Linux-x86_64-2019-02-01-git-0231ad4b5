@@ -1,0 +1,55 @@
+#!/bin/sh
+#
+# Copyright (c) 2018 PandoraBox Team
+#
+
+. /lib/qualcomm.sh
+. /lib/functions.sh 
+
+write_ipq40xx_default_board_data()
+{
+	local board=$(qualcomm_board_name)
+	local mtdblock=$(find_mtd_part 0:ART)
+	
+	local default_board_data0="/lib/firmware/IPQ4019/hw.1/boarddata_0.bin"
+	local default_board_data1="/lib/firmware/IPQ4019/hw.1/boarddata_1.bin"
+	local default_board_data2="/lib/firmware/QCA9984/hw.1/boarddata_1.bin"
+
+	# load board.bin
+	case "$board" in
+	ap-dk0*)
+		mtdblock=$(find_mtd_part 0:ART)
+		if [ -z "$mtdblock" ]; then
+			# read from mmc
+			mtdblock=$(find_mmc_part 0:ART)
+		fi
+		[ -n "$mtdblock" ] || return
+		
+		mtd write
+		dd if=${default_board_data0} of=${mtdblock} bs=32 count=377 seek=128  2>/dev/null >/dev/null
+		dd if=${default_board_data1} of=${mtdblock} bs=32 count=377 seek=640  2>/dev/null >/dev/null
+		dd if=${default_board_data2} of=${mtdblock} bs=32 count=377 seek=1152 2>/dev/null >/dev/null
+		;;
+	ap16* | ap148*)
+		mtdblock=$(find_mtd_part 0:ART)
+		if [ -z "$mtdblock" ]; then
+			# read from mmc
+			mtdblock=$(find_mmc_part 0:ART)
+		fi
+		[ -n "$mtdblock" ] || return
+
+		dd if=${default_board_data0} of=${mtdblock} bs=32 count=377 seek=128  2>/dev/null >/dev/null
+		dd if=${default_board_data1} of=${mtdblock} bs=32 count=377 seek=640  2>/dev/null >/dev/null
+		dd if=${default_board_data2} of=${mtdblock} bs=32 count=377 seek=1152 2>/dev/null >/dev/null
+		;;
+	*)
+		mtdblock=$(find_mtd_part ART)
+		[ -n "$mtdblock" ] || return
+
+		dd if=${default_board_data0} of=${mtdblock} bs=32 count=377 seek=128  2>/dev/null >/dev/null
+		dd if=${default_board_data1} of=${mtdblock} bs=32 count=377 seek=640  2>/dev/null >/dev/null
+		dd if=${default_board_data2} of=${mtdblock} bs=32 count=377 seek=1152 2>/dev/null >/dev/null
+	;;
+	esac
+}
+

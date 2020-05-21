@@ -1,0 +1,44 @@
+#!/bin/sh
+# Copyright (c) 2013 OpenWrt
+# Copyright (C) 2018 PandoraBox Team
+# Copyright (c) 2005-2018, lintel <lintel.huang@gmail.com>
+
+. /lib/functions.sh
+. /lib/functions/system.sh
+. /lib/functions/leds.sh
+
+wps_led_blink() {
+	led_timer $1 500 500
+	sleep 1
+}
+
+wps_led_off() {
+	sleep 2
+	led_off $1
+}
+
+logger "$BUTTON pressed for $SEEN seconds"
+# echo `export` > /dev/console
+## vap : Virtual AP
+if [ "$ACTION" = "released" -a "$BUTTON" = "wps" ]; then
+
+	local board=$(board_name)
+	local wps_led_name
+	echo "$board:WPS Pressed" > /dev/console
+
+	case "$board" in
+        sbr-ac1750)
+        wps_led_name="$board:green:wps"
+        wps_led_blink $wps_led_name
+		wps_pbc
+		wps_led_off $wps_led_name
+        ;;
+        *)
+         wps_pbc
+        ;;
+	esac
+fi
+
+
+    
+return 0

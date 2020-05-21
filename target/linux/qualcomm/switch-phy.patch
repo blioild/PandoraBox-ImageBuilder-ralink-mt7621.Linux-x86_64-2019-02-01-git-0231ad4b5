@@ -1,0 +1,564 @@
+--- a/include/uapi/linux/switch.h
++++ b/include/uapi/linux/switch.h
+@@ -47,12 +47,16 @@ enum {
+ 	SWITCH_ATTR_OP_NAME,
+ 	SWITCH_ATTR_OP_PORT,
+ 	SWITCH_ATTR_OP_VLAN,
++	SWITCH_ATTR_OP_REG,
+ 	SWITCH_ATTR_OP_VALUE_INT,
+ 	SWITCH_ATTR_OP_VALUE_STR,
+ 	SWITCH_ATTR_OP_VALUE_PORTS,
++	SWITCH_ATTR_OP_VALUE_EXT,
+ 	SWITCH_ATTR_OP_DESCRIPTION,
+ 	/* port lists */
+ 	SWITCH_ATTR_PORT,
++	/* switch_ext attribute */
++	SWITCH_ATTR_EXT,
+ 	SWITCH_ATTR_MAX
+ };
+ 
+@@ -77,7 +81,10 @@ enum {
+ 	SWITCH_CMD_SET_PORT,
+ 	SWITCH_CMD_LIST_VLAN,
+ 	SWITCH_CMD_GET_VLAN,
+-	SWITCH_CMD_SET_VLAN
++	SWITCH_CMD_SET_VLAN,
++	SWITCH_CMD_LIST_REG,
++	SWITCH_CMD_GET_REG,
++	SWITCH_CMD_SET_REG,
+ };
+ 
+ /* data types */
+@@ -86,6 +93,7 @@ enum switch_val_type {
+ 	SWITCH_TYPE_INT,
+ 	SWITCH_TYPE_STRING,
+ 	SWITCH_TYPE_PORTS,
++	SWITCH_TYPE_EXT,
+ 	SWITCH_TYPE_NOVAL,
+ };
+ 
+@@ -97,6 +105,14 @@ enum {
+ 	SWITCH_PORT_ATTR_MAX
+ };
+ 
++/* switch_ext nested attributes */
++enum {
++	SWITCH_EXT_UNSPEC,
++	SWITCH_EXT_NAME,
++	SWITCH_EXT_VALUE,
++	SWITCH_EXT_ATTR_MAX
++};
++
+ #define SWITCH_ATTR_DEFAULTS_OFFSET	0x1000
+ 
+--- a/include/linux/switch.h
++++ b/include/linux/switch.h
+@@ -83,6 +83,10 @@ struct switch_port_stats {
+  */
+ struct switch_dev_ops {
+ 	struct switch_attrlist attr_global, attr_port, attr_vlan;
++	struct switch_attrlist attr_reg;
++
++	int (*get_reg_val)(struct switch_dev *dev, int reg, int *val);
++	int (*set_reg_val)(struct switch_dev *dev, int reg, int val);
+ 
+ 	int (*get_vlan_ports)(struct switch_dev *dev, struct switch_val *val);
+ 	int (*set_vlan_ports)(struct switch_dev *dev, struct switch_val *val);
+@@ -118,6 +122,7 @@ struct switch_dev {
+ 	int id;
+ 	struct list_head dev_list;
+ 	unsigned long def_global, def_port, def_vlan;
++	unsigned long def_reg;
+ 
+ 	struct mutex sw_mutex;
+ 	struct switch_port *portbuf;
+@@ -140,6 +145,12 @@ struct switch_portmap {
+ 	const char *s;
+ };
+ 
++struct switch_ext {
++	const char *option_name;
++	const char *option_value;
++	struct switch_ext *next;
++};
++
+ struct switch_val {
+ 	const struct switch_attr *attr;
+ 	int port_vlan;
+@@ -148,6 +159,7 @@ struct switch_val {
+ 		const char *s;
+ 		u32 i;
+ 		struct switch_port *ports;
++		struct switch_ext *ext_val;
+ 	} value;
+ };
+ 
+--- a/drivers/net/ethernet/Kconfig
++++ b/drivers/net/ethernet/Kconfig
+@@ -12,7 +12,9 @@ menuconfig ETHERNET
+ if ETHERNET
+ 
+ config MDIO
+-	tristate
++	tristate "MDIO IOCTL support"
++	---help---
++	  This section contains the generic MDIO support.
+ 
+ config SUNGEM_PHY
+ 	tristate
+--- a/drivers/net/phy/Kconfig
++++ b/drivers/net/phy/Kconfig
+@@ -152,6 +152,17 @@ config RTL8306_PHY
+ 	tristate "Driver for Realtek RTL8306S switches"
+ 	select SWCONFIG
+ 
++config MICREL_PHY
++	tristate "Drivers for Micrel/Kendin PHYs"
++	---help---
++	  Currently has a driver for the KSZ8041
++
++config QCA_85XX_SWITCH
++	tristate "Driver for 841x, 851x, 861x, 871x family of switches"
++	select SWCONFIG
++	---help---
++	 Driver for 841x, 851x, 861x, 871x family of switches
++
+ config FIXED_PHY
+ 	bool "Driver for MDIO Bus/PHY emulation with fixed speed/link PHYs"
+ 	depends on PHYLIB=y
+@@ -271,6 +282,12 @@ config RTL8367B_PHY
+ 
+ endif # RTL8366_SMI
+ 
++config AQ_PHY
++        tristate "Driver for Aquantia PHY"
++        depends on MDIO_GPIO
++        ---help---
++        Supports the Aquantia PHY
++
+ source "drivers/net/phy/b53/Kconfig"
+ 
+ endif # PHYLIB
+@@ -283,3 +300,9 @@ config PSB6970_PHY
+ 	tristate "Lantiq XWAY Tantos (PSB6970) Ethernet switch"
+ 	select SWCONFIG
+ 	select ETHERNET_PACKET_MANGLE
++
++config MDIO_IPQ40XX
++	tristate "Qualcomm Atheros ipq40xx MDIO interface"
++	help
++	  This driver supports the MDIO interface found in Qualcomm
++	  Atheros ipq40xx Soc chip.
+--- a/drivers/net/phy/Makefile
++++ b/drivers/net/phy/Makefile
+@@ -30,21 +30,24 @@ obj-$(CONFIG_RTL8366RB_PHY)	+= rtl8366rb
+ obj-$(CONFIG_RTL8367_PHY)	+= rtl8367.o
+ obj-$(CONFIG_RTL8367B_PHY)	+= rtl8367b.o
+ obj-$(CONFIG_LSI_ET1011C_PHY)	+= et1011c.o
++obj-$(CONFIG_MICREL_PHY)	+= micrel.o
+ obj-$(CONFIG_PSB6970_PHY)	+= psb6970.o
+ obj-$(CONFIG_B53)		+= b53/
+ obj-$(CONFIG_FIXED_PHY)		+= fixed.o
+ obj-$(CONFIG_MDIO_BITBANG)	+= mdio-bitbang.o
+ obj-$(CONFIG_MDIO_GPIO)		+= mdio-gpio.o
+ obj-$(CONFIG_NATIONAL_PHY)	+= national.o
++obj-$(CONFIG_AQ_PHY)            += aq_phy.o
+ obj-$(CONFIG_DP83640_PHY)	+= dp83640.o
+ obj-$(CONFIG_STE10XP)		+= ste10Xp.o
+-obj-$(CONFIG_MICREL_PHY)	+= micrel.o
+ obj-$(CONFIG_MDIO_OCTEON)	+= mdio-octeon.o
+ obj-$(CONFIG_MICREL_KS8995MA)	+= spi_ks8995.o
+ obj-$(CONFIG_AT803X_PHY)	+= at803x.o
+ obj-$(CONFIG_AMD_PHY)		+= amd.o
++obj-$(CONFIG_QCA_85XX_SWITCH)   += qca_85xx_sw.o
+ obj-$(CONFIG_MDIO_BUS_MUX)	+= mdio-mux.o
+ obj-$(CONFIG_MDIO_BUS_MUX_GPIO)	+= mdio-mux-gpio.o
+ obj-$(CONFIG_MDIO_BUS_MUX_MMIOREG) += mdio-mux-mmioreg.o
+ obj-$(CONFIG_MDIO_SUN4I)	+= mdio-sun4i.o
+ obj-$(CONFIG_MDIO_MOXART)	+= mdio-moxart.o
++obj-$(CONFIG_MDIO_IPQ40XX)	+= mdio-ipq40xx.o
+--- a/drivers/net/phy/b53/b53_mmap.c
++++ b/drivers/net/phy/b53/b53_mmap.c
+@@ -90,13 +90,19 @@ static int b53_mmap_read48(struct b53_de
+ 
+ static int b53_mmap_read64(struct b53_device *dev, u8 page, u8 reg, u64 *val)
+ {
++	u8 __iomem *regs = dev->priv;
+ 	u32 hi, lo;
+ 
+ 	if (WARN_ON(reg % 4))
+ 		return -EINVAL;
+ 
+-	b53_mmap_read32(dev, page, reg, &lo);
+-	b53_mmap_read32(dev, page, reg + 4, &hi);
++	if (dev->pdata && dev->pdata->big_endian) {
++		lo = readl_be(regs + (page << 8) + reg);
++		hi = readl_be(regs + (page << 8) + reg + 4);
++	} else {
++		lo = readl(regs + (page << 8) + reg);
++		hi = readl(regs + (page << 8) + reg + 4);
++	}
+ 
+ 	*val = ((u64)hi << 32) | lo;
+ 
+@@ -170,16 +176,18 @@ static int b53_mmap_write48(struct b53_d
+ static int b53_mmap_write64(struct b53_device *dev, u8 page, u8 reg,
+ 			     u64 value)
+ {
+-	u32 hi, lo;
+-
+-	hi = (u32)(value >> 32);
+-	lo = (u32)value;
++	u8 __iomem *regs = dev->priv;
+ 
+ 	if (WARN_ON(reg % 4))
+ 		return -EINVAL;
+ 
+-	b53_mmap_write32(dev, page, reg, lo);
+-	b53_mmap_write32(dev, page, reg + 4, hi);
++	if (dev->pdata && dev->pdata->big_endian) {
++		writel_be((u32)(value >> 32), regs + (page << 8) + reg);
++		writel_be((u32)value, regs + (page << 8) + reg + 4);
++	} else {
++		writel((u32)value, regs + (page << 8) + reg);
++		writel((u32)(value >> 32), regs + (page << 8) + reg + 4);
++	}
+ 
+ 	return 0;
+ }
+--- a/drivers/net/phy/phy.c
++++ b/drivers/net/phy/phy.c
+@@ -484,6 +484,7 @@ void phy_start_machine(struct phy_device
+ {
+ 	queue_delayed_work(system_power_efficient_wq, &phydev->state_queue, HZ);
+ }
++EXPORT_SYMBOL(phy_start_machine);
+ 
+ /**
+  * phy_stop_machine - stop the PHY state machine tracking
+@@ -502,6 +503,7 @@ void phy_stop_machine(struct phy_device
+ 		phydev->state = PHY_UP;
+ 	mutex_unlock(&phydev->lock);
+ }
++EXPORT_SYMBOL(phy_stop_machine);
+ 
+ /**
+  * phy_error - enter HALTED state for this PHY device
+@@ -731,6 +733,9 @@ EXPORT_SYMBOL(phy_stop);
+  */
+ void phy_start(struct phy_device *phydev)
+ {
++	bool do_resume = false;
++	int err = 0;
++
+ 	mutex_lock(&phydev->lock);
+ 
+ 	switch (phydev->state) {
+@@ -741,11 +746,21 @@ void phy_start(struct phy_device *phydev
+ 		phydev->state = PHY_UP;
+ 		break;
+ 	case PHY_HALTED:
++		/* make sure interrupts are re-enabled for the PHY */
++		err = phy_enable_interrupts(phydev);
++		if (err < 0)
++			break;
++
+ 		phydev->state = PHY_RESUMING;
++		do_resume = true;
+ 	default:
+ 		break;
+ 	}
+ 	mutex_unlock(&phydev->lock);
++
++	/* if phy was suspended, bring the physical link up again */
++	if (do_resume)
++		phy_resume(phydev);
+ }
+ EXPORT_SYMBOL(phy_start);
+ 
+--- a/drivers/net/phy/swconfig.c
++++ b/drivers/net/phy/swconfig.c
+@@ -127,6 +127,30 @@ swconfig_get_pvid(struct switch_dev *dev
+ 	return dev->ops->get_port_pvid(dev, val->port_vlan, &val->value.i);
+ }
+ 
++static int
++swconfig_set_reg(struct switch_dev *dev, const struct switch_attr *attr, struct switch_val *val)
++{
++	if (val->port_vlan < 0)
++		return -EINVAL;
++
++	if (!dev->ops->set_reg_val)
++		return -EOPNOTSUPP;
++
++	return dev->ops->set_reg_val(dev, val->port_vlan, val->value.i);
++}
++
++static int
++swconfig_get_reg(struct switch_dev *dev, const struct switch_attr *attr, struct switch_val *val)
++{
++	if (val->port_vlan < 0)
++		return -EINVAL;
++
++	if (!dev->ops->get_reg_val)
++		return -EOPNOTSUPP;
++
++	return dev->ops->get_reg_val(dev, val->port_vlan, &val->value.i);
++}
++
+ static const char *
+ swconfig_speed_str(enum switch_port_speed speed)
+ {
+@@ -222,6 +246,10 @@ enum port_defaults {
+ 	PORT_LINK,
+ };
+ 
++enum reg_defaults {
++	REG_VAL,
++};
++
+ static struct switch_attr default_global[] = {
+ 	[GLOBAL_APPLY] = {
+ 		.type = SWITCH_TYPE_NOVAL,
+@@ -264,6 +292,16 @@ static struct switch_attr default_vlan[]
+ 	},
+ };
+ 
++static struct switch_attr default_reg[] = {
++	[REG_VAL] = {
++		.type = SWITCH_TYPE_INT,
++		.name = "val",
++		.description = "read/write value of switch register(debug use only)",
++		.set = swconfig_set_reg,
++		.get = swconfig_get_reg,
++	}
++};
++
+ static const struct switch_attr *
+ swconfig_find_attr_by_name(const struct switch_attrlist *alist,
+ 				const char *name)
+@@ -284,6 +322,7 @@ static void swconfig_defaults_init(struc
+ 	dev->def_global = 0;
+ 	dev->def_vlan = 0;
+ 	dev->def_port = 0;
++	dev->def_reg = 0;
+ 
+ 	if (ops->get_vlan_ports || ops->set_vlan_ports)
+ 		set_bit(VLAN_PORTS, &dev->def_vlan);
+@@ -291,6 +330,9 @@ static void swconfig_defaults_init(struc
+ 	if (ops->get_port_pvid || ops->set_port_pvid)
+ 		set_bit(PORT_PVID, &dev->def_port);
+ 
++	if (ops->get_reg_val || ops->set_reg_val)
++		set_bit(REG_VAL, &dev->def_reg);
++
+ 	if (ops->get_port_link &&
+ 	    !swconfig_find_attr_by_name(&ops->attr_port, "link"))
+ 		set_bit(PORT_LINK, &dev->def_port);
+@@ -317,6 +359,7 @@ static const struct nla_policy switch_po
+ 	[SWITCH_ATTR_OP_VALUE_INT] = { .type = NLA_U32 },
+ 	[SWITCH_ATTR_OP_VALUE_STR] = { .type = NLA_NUL_STRING },
+ 	[SWITCH_ATTR_OP_VALUE_PORTS] = { .type = NLA_NESTED },
++	[SWITCH_ATTR_OP_VALUE_EXT] = { .type = NLA_NESTED },
+ 	[SWITCH_ATTR_TYPE] = { .type = NLA_U32 },
+ };
+ 
+@@ -325,6 +368,12 @@ static const struct nla_policy port_poli
+ 	[SWITCH_PORT_FLAG_TAGGED] = { .type = NLA_FLAG },
+ };
+ 
++static const struct nla_policy ext_policy[SWITCH_EXT_ATTR_MAX+1] = {
++	[SWITCH_EXT_NAME] = { .type = NLA_NUL_STRING },
++	[SWITCH_EXT_VALUE] = { .type = NLA_NUL_STRING },
++};
++
++
+ static inline void
+ swconfig_lock(void)
+ {
+@@ -484,6 +533,12 @@ swconfig_list_attrs(struct sk_buff *skb,
+ 		def_active = &dev->def_port;
+ 		n_def = ARRAY_SIZE(default_port);
+ 		break;
++	case SWITCH_CMD_LIST_REG:
++		alist = &dev->ops->attr_reg;
++		def_list = default_reg;
++		def_active = &dev->def_reg;
++		n_def = ARRAY_SIZE(default_reg);
++		break;
+ 	default:
+ 		WARN_ON(1);
+ 		goto out;
+@@ -574,6 +629,18 @@ swconfig_lookup_attr(struct switch_dev *
+ 		if (val->port_vlan >= dev->ports)
+ 			goto done;
+ 		break;
++	case SWITCH_CMD_SET_REG:
++	case SWITCH_CMD_GET_REG:
++		alist = &dev->ops->attr_reg;
++		def_list = default_reg;
++		def_active = &dev->def_reg;
++		n_def = ARRAY_SIZE(default_reg);
++		if (!info->attrs[SWITCH_ATTR_OP_REG])
++			goto done;
++		val->port_vlan = nla_get_u32(info->attrs[SWITCH_ATTR_OP_REG]);
++		if (val->port_vlan < 0)
++			goto done;
++		break;
+ 	default:
+ 		WARN_ON(1);
+ 		goto done;
+@@ -638,11 +705,53 @@ swconfig_parse_ports(struct sk_buff *msg
+ }
+ 
+ static int
++swconfig_parse_ext(struct sk_buff *msg, struct nlattr *head,
++		struct switch_val *val, int max)
++{
++	struct nlattr *nla;
++	struct switch_ext *switch_ext_p, *switch_ext_tmp;
++	int rem;
++
++	val->len = 0;
++	switch_ext_p = val->value.ext_val;
++	nla_for_each_nested(nla, head, rem) {
++		struct nlattr *tb[SWITCH_EXT_ATTR_MAX+1];
++
++		switch_ext_tmp = kzalloc(sizeof(struct switch_ext), GFP_KERNEL);
++		if (!switch_ext_tmp)
++			return -ENOMEM;
++
++		if (nla_parse_nested(tb, SWITCH_EXT_ATTR_MAX, nla,
++				ext_policy))
++			return -EINVAL;
++
++		if (!tb[SWITCH_EXT_NAME])
++			return -EINVAL;
++		switch_ext_tmp->option_name = nla_data(tb[SWITCH_EXT_NAME]);
++
++		if (!tb[SWITCH_EXT_VALUE])
++			return -EINVAL;
++		switch_ext_tmp->option_value = nla_data(tb[SWITCH_EXT_VALUE]);
++
++		if(!switch_ext_p)
++			val->value.ext_val = switch_ext_tmp;
++		else
++			switch_ext_p->next = switch_ext_tmp;
++		switch_ext_p=switch_ext_tmp;
++
++		val->len++;
++	}
++
++	return 0;
++}
++
++static int
+ swconfig_set_attr(struct sk_buff *skb, struct genl_info *info)
+ {
+ 	const struct switch_attr *attr;
+ 	struct switch_dev *dev;
+ 	struct switch_val val;
++	struct switch_ext *switch_ext_p;
+ 	int err = -EINVAL;
+ 
+ 	dev = swconfig_get_dev(info);
+@@ -687,12 +796,38 @@ swconfig_set_attr(struct sk_buff *skb, s
+ 			err = 0;
+ 		}
+ 		break;
++	case SWITCH_TYPE_EXT:
++		if (info->attrs[SWITCH_ATTR_OP_VALUE_EXT]) {
++			err = swconfig_parse_ext(skb,
++				info->attrs[SWITCH_ATTR_OP_VALUE_EXT], &val, dev->ports);
++			if (err < 0)
++				goto error;
++		} else {
++			val.len = 0;
++			err = 0;
++		}
++		break;
++
+ 	default:
+ 		goto error;
+ 	}
+ 
+ 	err = attr->set(dev, attr, &val);
++
+ error:
++	/* free memory if necessary */
++	if (attr) {
++		switch (attr->type) {
++		case SWITCH_TYPE_EXT:
++			switch_ext_p = val.value.ext_val;
++			while (switch_ext_p) {
++				struct switch_ext *ext_value_p = switch_ext_p;
++				switch_ext_p = switch_ext_p->next;
++				kfree(ext_value_p);
++			}
++		}
++	}
++
+ 	swconfig_put_dev(dev);
+ 	return err;
+ }
+@@ -945,6 +1080,11 @@ static struct genl_ops swconfig_ops[] =
+ 		.policy = switch_policy,
+ 	},
+ 	{
++		.cmd = SWITCH_CMD_LIST_REG,
++		.doit = swconfig_list_attrs,
++		.policy = switch_policy,
++	},
++	{
+ 		.cmd = SWITCH_CMD_GET_GLOBAL,
+ 		.doit = swconfig_get_attr,
+ 		.policy = switch_policy,
+@@ -960,6 +1100,11 @@ static struct genl_ops swconfig_ops[] =
+ 		.policy = switch_policy,
+ 	},
+ 	{
++		.cmd = SWITCH_CMD_GET_REG,
++		.doit = swconfig_get_attr,
++		.policy = switch_policy,
++	},
++	{
+ 		.cmd = SWITCH_CMD_SET_GLOBAL,
+ 		.doit = swconfig_set_attr,
+ 		.policy = switch_policy,
+@@ -974,6 +1119,11 @@ static struct genl_ops swconfig_ops[] =
+ 		.doit = swconfig_set_attr,
+ 		.policy = switch_policy,
+ 	},
++	{
++		.cmd = SWITCH_CMD_SET_REG,
++		.doit = swconfig_set_attr,
++		.policy = switch_policy,
++	},
+ 	{
+ 		.cmd = SWITCH_CMD_GET_SWITCH,
+ 		.dumpit = swconfig_dump_switches,
+--- a/drivers/net/wireless/ath/ath9k/init.c
++++ b/drivers/net/wireless/ath/ath9k/init.c
+@@ -716,7 +716,7 @@ static int ath9k_init_softc(u16 devid, s
+ 	sc->tx99_power = MAX_RATE_POWER + 1;
+ 	init_waitqueue_head(&sc->tx_wait);
+ 
+-	if (!pdata) {
++	if (!pdata || pdata->use_eeprom) {
+ 		ah->ah_flags |= AH_USE_EEPROM;
+ 		sc->sc_ah->led_pin = -1;
+ 	} else {
+--- a/drivers/of/Kconfig
++++ b/drivers/of/Kconfig
+@@ -75,4 +75,10 @@ config OF_MTD
+ 	depends on MTD
+ 	def_bool y
+ 
++config OF_RESERVED_MEM
++	depends on OF_EARLY_FLATTREE
++	bool
++	help
++	  Helpers to allow for reservation of memory regions
++
+ endmenu # OF
+ 

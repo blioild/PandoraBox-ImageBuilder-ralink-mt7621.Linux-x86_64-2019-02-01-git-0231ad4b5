@@ -1,0 +1,68 @@
+#!/bin/sh
+# Copyright (c) 2013 OpenWrt
+# Copyright (C) 2014 D-Team Technology Co.,Ltd. ShenZhen
+# Copyright (c) 2005-2015, lintel <lintel.huang@gmail.com>
+#   
+#   按键响应脚本
+#    
+#     警告:对着屏幕的哥们,我们允许你使用此脚本，但不允许你抹去作者的信息,请保留这段话。
+#
+
+[ "${ACTION}" = "released" ] || exit 0
+
+. /lib/functions.sh
+. /etc/diag.sh
+
+logger "$BUTTON pressed for $SEEN seconds"
+
+if [ "$SEEN" -lt 2 ]
+then
+{
+	case $(ralink_board_name) in
+	vg100 | \
+	dm06  | \
+	yk-l2  | \
+	pbr-d1  | \
+	timecloud2  | \
+	timecloud)
+		echo "RESET Pressed" > /dev/console
+		return
+		;;
+	*)
+		echo "WPS Pressed" > /dev/console
+		sync
+		wps_pbc
+		;;
+	esac
+
+}
+elif [ "$SEEN" -gt 2 ]
+then
+{
+	echo "FACTORY RESET" > /dev/console
+	get_status_led
+	case $(ralink_board_name) in
+		d1)
+			status_led_off
+			status_led="newifi-d1:yellow:status"
+			;;
+		d2)
+			ralink_reset_all_leds
+			for i in $(ls /sys/class/leds |grep blue)
+			do
+				led_timer $i 50 50
+			done
+			;;
+		y1s)
+			ralink_reset_all_leds
+			for i in $(ls /sys/class/leds)
+			do
+				led_timer $i 50 50
+			done
+			;;
+		*)
+			status_led_blink_failsafe
+	esac
+	sync && jffs2reset -y && reboot
+}
+fi

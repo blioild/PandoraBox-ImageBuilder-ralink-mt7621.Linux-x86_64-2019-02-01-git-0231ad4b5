@@ -1,0 +1,32 @@
+#!/bin/sh
+. /lib/functions.sh
+. /lib/functions/network.sh
+. /lib/functions/leds.sh
+. /lib/qualcomm.sh
+
+board="$(qualcomm_board_name)"
+
+check_cfg_nonexist() {
+	[ $(grep sysfs /etc/config/system | grep -c "$1") -eq 0 ]
+}
+
+if [ "$INET_STAT" = "CONNECTED" ]
+then
+	network_find_wan wan_net_name
+	network_get_device wan_dev "$wan_net_name"
+	case "$board" in
+	asus,rt-acrh17)
+		check_cfg_nonexist "rt-acrh17:red:wan" || exit 0
+		led_off "rt-acrh17:red:wan"
+		;;
+	esac
+else
+	case "$board" in
+	asus,rt-acrh17)
+		check_cfg_nonexist "rt-acrh17:red:wan" || exit 0
+		led_set_attr "rt-acrh17:red:wan" "trigger" "switch0"
+		led_set_attr "rt-acrh17:red:wan" "port_mask" "0x20"
+		;;
+	esac
+fi
+

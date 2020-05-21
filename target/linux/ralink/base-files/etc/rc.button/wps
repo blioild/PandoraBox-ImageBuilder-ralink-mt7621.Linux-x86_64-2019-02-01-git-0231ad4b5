@@ -1,0 +1,42 @@
+#!/bin/sh
+# Copyright (c) 2013 OpenWrt
+# Copyright (C) 2014 D-Team Technology Co.,Ltd. ShenZhen
+# Copyright (c) 2005-2015, lintel <lintel.huang@gmail.com>
+#   
+#   按键响应脚本
+#    
+#     警告:对着屏幕的哥们,我们允许你使用此脚本，但不允许你抹去作者的信息,请保留这段话。
+#
+
+[ "${ACTION}" = "released" ] || exit 0
+
+. /lib/functions.sh
+
+. /lib/ralink.sh
+
+
+logger "$BUTTON pressed for $SEEN seconds"
+
+
+led_status() {
+			echo  "heartbeat"   > /sys/class/leds/$1/trigger
+			sleep 120 && rm /tmp/wps_status && echo 0 > /sys/class/leds/$1/brightness&
+}
+
+case $(ralink_board_name) in
+	 yk-l2)
+		echo "WPS Pressed" > /dev/console
+		[ -f /tmp/wps_status ] || {
+			touch /tmp/wps_status
+			sync
+
+			wps_pbc
+			led_status "wps"
+		}
+		;;
+	*)
+		echo "WPS Pressed" > /dev/console
+		sync
+		wps_pbc
+		;;
+esac

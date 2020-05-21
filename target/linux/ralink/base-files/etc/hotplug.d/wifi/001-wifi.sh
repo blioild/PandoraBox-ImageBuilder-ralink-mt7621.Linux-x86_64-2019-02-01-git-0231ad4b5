@@ -1,0 +1,3 @@
+#!/bin/sh
+logger -t wifi   "WIFIDEV=$WIFIDEV  ACTION=$ACTION  MAC=$MAC  SPEED=$SPEED SIGNAL=$SIGNAL"
+

@@ -1,0 +1,12 @@
+#!/bin/sh
+#logger -t i2c "ACTION=$ACTION DEVICENAME=$DEVICENAME"
+[ $ACTION = "add" ] || break;
+
+case "$DEVICENAME" in
+    rtc*)
+    [ -e /dev/rtc0 ] && {
+         hwclock -s
+	 logger  -s -t rtc "Setting system time from hardware clock($DEVICENAME)."
+    }
+    ;;
+esac

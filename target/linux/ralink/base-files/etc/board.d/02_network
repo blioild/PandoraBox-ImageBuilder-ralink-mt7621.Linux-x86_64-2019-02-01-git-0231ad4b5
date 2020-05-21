@@ -1,0 +1,371 @@
+#!/bin/sh
+# Copyright (C) 2016 D-Team Technology Co.,Ltd. ShenZhen
+# Copyright (c) 2016, lintel <lintel.huang@gmail.com>
+# Copyright (c) 2016, GuoGuo <gch981213@gmail.com>
+#
+#
+#     警告:对着屏幕的哥们,我们允许你使用此脚本，但不允许你抹去作者的信息,请保留这段话。
+#
+
+. /lib/functions.sh
+. /lib/ralink.sh
+. /lib/functions/uci-defaults-new.sh
+. /lib/functions/system.sh
+
+#MT7620/MT7621 Only!!
+ralink_setup_mt762x_hnat()
+{
+	json_select_object switch
+		json_select_object "switch0"
+			json_select_array ports
+				json_add_object
+					json_add_int num "7"
+					json_add_string role "PPE"
+				json_close_object
+			json_select ..
+			json_select_array roles
+				json_select_object "1"
+					json_get_var port ports
+					json_add_string ports "$port 7t"
+				json_select ..
+				json_select_object "2"
+					json_get_var port ports
+					json_add_string ports "$port 7t"
+				json_select ..
+			json_select ..
+		json_select ..
+	json_select ..
+}
+
+ralink_setup_mt762x_vlans_wllll()
+{
+	ucidef_add_switch "switch0" \
+	"1:lan" "2:lan" "3:lan" "4:lan" "5:lan" "0:wan" "6@eth0"
+	ralink_setup_mt762x_hnat
+}
+
+ralink_setup_mt762x_vlans_llllw()
+{
+	ucidef_add_switch "switch0" \
+	"0:lan" "1:lan" "2:lan" "3:lan" "5:lan" "4:wan" "6@eth0"
+	ralink_setup_mt762x_hnat
+}
+
+ralink_setup_rt305x_vlans_wllll()
+{
+	ucidef_add_switch "switch0" \
+	"1:lan" "2:lan" "3:lan" "4:lan" "0:wan" "5:wan" "6@eth0"
+}
+
+ralink_setup_rt305x_vlans_llllw()
+{
+	ucidef_add_switch "switch0" \
+	"0:lan" "1:lan" "2:lan" "3:lan" "4:wan" "5:wan" "6@eth0"
+}
+
+ralink_setup_rt3x5x_vlans()
+{
+	if [ ! -x /sbin/swconfig ]; then
+		# legacy default
+		ucidef_set_interfaces_lan_wan "eth0.1" "eth0.2"
+		return
+	fi
+	local wanports=""
+	local lanports=""
+	for port in 5 4 3 2 1 0; do
+		if [ `swconfig dev rt305x port $port get disable` = "1" ]; then
+			continue
+		fi
+		if [ `swconfig dev rt305x port $port get lan` = "0" ]; then
+			wanports="$port:wan $wanports"
+		else
+			lanports="$port:lan $lanports"
+		fi
+	done
+	ucidef_set_interfaces_lan_wan "eth0.1" "eth0.2"
+	ucidef_add_switch "rt305x" $lanports $wanports "6@eth0"
+}
+
+ralink_setup_interfaces()
+{
+	local board="$1"
+
+	case $board in
+	5k-w20)
+		ucidef_add_switch "switch0" \
+		"1:lan:1" "2:lan:2" "0:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	y1)
+		ucidef_add_switch "switch0" \
+		"0:lan:2" "1:lan:1" "4:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	xiaomi-r3)
+		ucidef_add_switch "switch0" \
+		"1:lan:2" "4:lan:1" "0:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	y1s)
+		ucidef_add_switch "switch0" \
+		"1:lan:4" "2:lan:3" "4:lan:2" "5:lan:1" "0:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	d1)
+		ucidef_add_switch "switch0" \
+		"1:lan:2" "2:lan:1" "4:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	r6220)
+		ucidef_add_switch "switch0" \
+		"0:lan:4" "1:lan:3" "2:lan:2" "3:lan:1" "4:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	dir620 | \
+	wr8305rt | \
+	xiaomi-mini | \
+	yk1 | \
+	oye-0001 | \
+	mt7621a-evb | \
+	k2p | \
+	ac860m | \
+	m100 | \
+	br100)
+		ralink_setup_mt762x_vlans_llllw
+		;;
+	mw305r | \
+	mt7620a-evb | \
+	ry1 | \
+	hc5661 | \
+	hc5761 | \
+	hc5861 | \
+	wrtnode | \
+	mtall | \
+	ap7620a | \
+	vg100 | \
+	mac2600r | \
+	wr1200js | \
+	superdisk_mini)
+		ralink_setup_mt762x_vlans_wllll
+		;;
+	rt-n56u)
+		ucidef_add_switch "switch0" \
+			"0:lan" "1:lan" "2:lan" "3:lan" "4:wan" "8@eth0"
+		;;
+	hg255d | \
+	360safe-p2 | \
+	hg256)
+		ralink_setup_rt305x_vlans_wllll
+		;;
+	a3004ns)
+		ucidef_add_switch "switch0" \
+		"1:lan" "2:lan" "3:lan" "4:lan" "0:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	microwrt | \
+	pbr-d1 | \
+	q7)
+		ucidef_add_switch "switch0"
+		ucidef_add_switch_attr "switch0" "enable" "false"
+		ucidef_set_interface_lan "eth0"
+		;;
+	timecloud2 | \
+	timecloud)
+		ucidef_add_switch "switch0"
+		ucidef_add_switch_attr "switch0" "enable" "false"
+		ucidef_set_interface_raw "lan2" "eth0" "dhcp"
+		;;
+	magic-disc)
+		ralink_setup_rt305x_vlans_wllll
+		;;
+	pbr-m1 | \
+	pbr-m2 | \
+	pbr-aps | \
+	creativebox | \
+	wsr-1166 | \
+	yk-l2 | \
+	abox | \
+	k1 | \
+	k2)
+		ucidef_add_switch "switch0" \
+		"0:lan" "1:lan" "2:lan" "3:lan" "4:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	k2g)
+		ucidef_add_switch "switch0" \
+		"0:lan:4" "1:lan:3" "2:lan:2" "3:lan:1" "5:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	gh-a1 |\
+	d2)
+		ucidef_add_switch "switch0" \
+		"0:lan:4" "1:lan:3" "2:lan:2" "3:lan:1" "4:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	xiaomi-r3p)
+		ucidef_add_switch "switch0" \
+		"0:lan" "1:lan" "2:lan" "3:lan" "4:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	xiaomi-r3g)
+		ucidef_add_switch "switch0" \
+		"3:lan:1" "2:lan:2" "1:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	hc5962 |\
+	a7000r)
+		ucidef_add_switch "switch0" \
+		"1:lan:1" "2:lan:2" "3:lan:3" "4:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	re6500)
+		ucidef_add_switch "switch0" \
+		"0:lan:1" "1:lan:2" "2:lan:3" "3:wan" "6@eth0"
+		ralink_setup_mt762x_hnat
+		;;
+	dm06 | \
+	hc5661a|\
+	widora | \
+	pgb-m10 | \
+	linkit | \
+	pbr-c1 | \
+	pbr-w3 | \
+	pbr-bhu | \
+	rt-n13u | \
+	xiaomi-r1cl | \
+	360safe-p2 | \
+	mt7628a-evb)
+		ralink_setup_rt305x_vlans_llllw
+		;;
+	r6120)
+		ralink_setup_rt305x_vlans_llllw
+		;;
+	pgb-4gm | \
+	ha-1mgwa)
+		ralink_setup_rt305x_vlans_wllll
+		;;
+	*)
+		RT3X5X=`cat /proc/cpuinfo | egrep "(RT3.5|RT5350)"`
+		if [ -n "${RT3X5X}" ]; then
+			ralink_setup_rt3x5x_vlans
+		else
+			ucidef_set_interfaces_lan_wan "eth0.1" "eth0.2"
+		fi
+		;;
+	esac
+}
+
+ralink_setup_macs()
+{
+	local board="$1"
+	local lan_mac=""
+	local wan_mac=""
+
+	case $board in
+	re6500 |\
+	y1 |\
+	y1s)
+		lan_mac=$(cat /sys/class/net/eth0/address)
+		wan_mac=$(macaddr_add "$lan_mac" 1)
+		;;
+	pbr-m1 | \
+	pbr-m2 | \
+	wr1200js | \
+	m1-jd | \
+	abox)
+		lan_mac=$(cat /sys/class/net/eth0/address)
+		wan_mac=$(mtd_get_mac_binary Factory 57350)
+		;;
+	rt-n56u)
+		lan_mac=$(cat /sys/class/net/eth0/address)
+		lan_mac=$(macaddr_setbit_la "$lan_mac")
+		wan_mac=$(mtd_get_mac_binary Factory 32772)
+		;;
+	hg256 | \
+	hg255d)
+		lan_mac=$(mtd_get_mac_binary Factory 4)
+		lan_mac=$(macaddr_add "$lan_mac" 1)
+		wan_mac=$(macaddr_add "$lan_mac" 1)
+		;;
+	hc5661 | \
+	hc5661a|\
+	hc5761 | \
+	hc5962 | \
+	hc5861)
+		lan_mac=`mtd_get_mac_ascii bd_info_rsa "Vfac_mac "`
+		[ -n "$lan_mac" ] || lan_mac=$(cat /sys/class/net/eth0/address)
+		wan_mac=$(macaddr_add "$lan_mac" 1)
+		;;
+	pbr-m1 | \
+	pbr-m2 | \
+	wr1200js |\
+	pbr-aps | \
+	wsr-1166 | \
+	k2p | \
+	d2 | \
+	xiaomi-r3g | \
+	xiaomi-r3p | \
+	d1)
+		lan_mac=$(mtd_get_mac_binary Factory 57344)
+		[ -n "$lan_mac" ] || lan_mac=$(cat /sys/class/net/eth0/address)
+		wan_mac=$(mtd_get_mac_binary Factory 57350)
+		[ -n "$wan_mac" ] || wan_mac=$(macaddr_add "$lan_mac" 1)
+		;;
+	abox | \
+	creativebox | \
+	yk-l2)
+		lan_mac=$(cat /sys/class/net/eth0/address)
+		wan_mac=$(macaddr_add "$lan_mac" 1)
+		;;
+	*)
+		MT7621=`cat /proc/cpuinfo | egrep "MT7621"`
+		if [ -n "${MT7621}" ]; then
+			lan_mac=$(cat /sys/class/net/eth0/address)
+			wan_mac=$(mtd_get_mac_binary Factory 57350)
+			[ -n "$wan_mac" ] || wan_mac=$(macaddr_add "$lan_mac" 1)
+		else
+			lan_mac=$(cat /sys/class/net/eth0/address)
+			wan_mac=$(macaddr_add "$lan_mac" 1)
+		fi
+
+		;;
+	esac
+
+	[ -n "$lan_mac" ] && ucidef_set_interface_macaddr lan $lan_mac
+	[ -n "$wan_mac" ] && ucidef_set_interface_macaddr wan $wan_mac
+}
+
+ralink_setup_ipaddr()
+{
+	local board="$1"
+
+	json_select_object network
+
+	json_select "lan"
+	[ $? -eq 0 ] || {
+		json_select ..
+		return
+	}
+	case $board in
+		pbr-d1 | \
+		timecloud2 | \
+		timecloud)
+			json_add_string ipaddr "192.168.1.1"
+			;;
+		pbr-c1)
+			json_add_string ipaddr "192.168.0.1"
+			;;
+	esac
+	json_select ..
+
+	json_select ..
+}
+
+board_config_update
+board=$(ralink_board_name)
+ralink_setup_interfaces $board
+ralink_setup_macs $board
+ralink_setup_ipaddr $board
+board_config_flush
+
+exit 0
