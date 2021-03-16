@@ -5,7 +5,8 @@
 sudo apt-get update
 ```
 ```bash
-sudo apt-get install vim golang npm build-essential libncurses5-dev zlib1g-dev gawk git libssl-dev wget unzip python ocaml-nox help2man texinfo yui-compressor
+sudo apt-get install libssl-dev ocaml-nox golang
+sudo apt-get install npm
 ```
 note: You need to install those packages above one by one when you have problem with them.
 - Clone ImageBuilder to you Ubuntu and go to the ImageBuiler directory
